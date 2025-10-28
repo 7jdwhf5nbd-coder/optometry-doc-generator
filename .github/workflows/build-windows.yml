@@ -1,0 +1,45 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller reportlab PyPDF2
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --onedir --windowed --name OptometryDocGenerator optometry_doc_generator.py
+
+      - name: Copy data files
+        run: |
+          Copy-Item "doctors_list-2.csv" "dist\OptometryDocGenerator\"
+          Copy-Item "DM Form.pdf" "dist\OptometryDocGenerator\"
+          Copy-Item "MTO JR.pdf" "dist\OptometryDocGenerator\"
+          Copy-Item "MTO JG.pdf" "dist\OptometryDocGenerator\"
+          Copy-Item "letterhead.png" "dist\OptometryDocGenerator\"
+
+      - name: Zip the app
+        run: |
+          Compress-Archive -Path "dist\OptometryDocGenerator\*" -DestinationPath "OptometryDocGenerator.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OptometryDocGenerator-Windows
+          path: OptometryDocGenerator.zip
